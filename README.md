@@ -17,9 +17,9 @@ COMMANDS:
 sm_beaconall - Beacons all players regardless of which state the plugin is in
 sm_stopbeacon - Removes all beacons regardless of which state the plugin is in
 
-
 INSTALLATION:
 To install, simply download the zip file and extract the files into their appropriate directories
 
 -------------------------------------------------------------------------------
+
 Consider donating to me @ pflaherty@fhicci.com via paypal if you like my work.
