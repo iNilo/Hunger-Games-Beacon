@@ -1,11 +1,13 @@
-If you need any help configuring feel free to add me on steam below
+------------------------------------------------------------------------------
+Links:
+  My Steam
 http://steamcommunity.com/id/headline22
-
+  My Allied Mods Release
 https://forums.alliedmods.net/showthread.php?t=265287
+  My Community
+http://allied-gamers.com/
 
-Consider donating to me @ pflaherty@fhicci.com via paypal if you like my work.
-
-
+-------------------------------------------------------------------------------
 [CS:GO] Hunger Games Beacon
 
 ABOUT:
@@ -18,3 +20,6 @@ sm_stopbeacon - Removes all beacons regardless of which state the plugin is in
 
 INSTALLATION:
 To install, simply download the zip file and extract the files into their appropriate directories
+
+-------------------------------------------------------------------------------
+Consider donating to me @ pflaherty@fhicci.com via paypal if you like my work.
