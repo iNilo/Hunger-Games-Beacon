@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------------
 Links:
-  My Steam
+My Steam
 http://steamcommunity.com/id/headline22
-  My Allied Mods Release
+My Allied Mods Release
 https://forums.alliedmods.net/showthread.php?t=265287
-  My Community
+My Community
 http://allied-gamers.com/
 
 -------------------------------------------------------------------------------
