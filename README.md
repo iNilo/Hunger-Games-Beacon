@@ -1,6 +1,8 @@
 If you need any help configuring feel free to add me on steam below
 http://steamcommunity.com/id/headline22
 
+https://forums.alliedmods.net/showthread.php?t=265287
+
 Consider donating to me @ pflaherty@fhicci.com via paypal if you like my work.
 
 
