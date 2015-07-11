@@ -13,7 +13,7 @@ new g_HaloSprite = -1;
 
 new g_beaconrepeat = 1;
 
-new bool:beaconon = false;
+new bool:g_bBeaconOn = false;
 
 new Handle:g_hPluginEnabled = INVALID_HANDLE;
 new bool:g_bPluginEnabled;
@@ -113,6 +113,7 @@ public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewVal
 
 public OnMapStart()
 {
+	g_bBeaconOn = false;
     PrecacheSound(SOUND_BLIP, true);
     g_BeamSprite = PrecacheModel("materials/sprites/bomb_planted_ring.vmt");
     g_HaloSprite = PrecacheModel("materials/sprites/halo.vtf");
@@ -164,13 +165,13 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 
 public Action:stop_beacons(Handle:timer)
 {
-	beaconon = false;
+	g_bBeaconOn = false;
 	g_beaconrepeat++;
 }
 
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	beaconon = false;
+	g_bBeaconOn = false;
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
@@ -199,7 +200,7 @@ public Action:beacon_all_timelimit(Handle:timer, any:userid)
 
 public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	beaconon = false;
+	g_bBeaconOn = false;
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
@@ -242,7 +243,7 @@ public Action:Command_BeaconAll(client, args)
 	{
 		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}ON", client);
 	}
-	if (beaconon)
+	if (g_bBeaconOn)
 	{
 		CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
 		if (!g_bPluginColor)
@@ -271,12 +272,12 @@ public Action:beacon_all(Handle:timer, any:userid)
 	new client = GetClientOfUserId(userid);
 	if(g_iClientValidation[client] != g_beaconrepeat)
 	{
-		beaconon = false;
+		g_bBeaconOn = false;
 		return Plugin_Stop;
 	}
 	if(IsClientInGame(client) && IsPlayerAlive(client) && (0 < client <= MaxClients))
 	{
-		beaconon = true;
+		g_bBeaconOn = true;
 		new Float:vec[3];
 		GetClientAbsOrigin(client, vec);
 		vec[2] += 10;
@@ -288,7 +289,7 @@ public Action:beacon_all(Handle:timer, any:userid)
 		EmitAmbientSound(SOUND_BLIP, vec, client, SNDLEVEL_RAIDSIREN);
 		return Plugin_Continue;
 	}
-	beaconon = false;
+	g_bBeaconOn = false;
 	return Plugin_Stop;
 }
 
