@@ -13,6 +13,8 @@ new g_HaloSprite = -1;
 
 new g_beaconrepeat = 1;
 
+new bool:beaconon = false;
+
 new Handle:g_hPluginEnabled = INVALID_HANDLE;
 new bool:g_bPluginEnabled;
 
@@ -125,7 +127,7 @@ public OnClientConnected(client)
 public OnClientDisconnected(client)
 {
 	g_iClientValidation[client] = 0;
-	if(GetPlayerCount() == 2)
+	if(GetPlayerCount() == g_bMinimumBeacon)
 	{
 		g_beaconrepeat++;
 		for (new i = 1; i <= MaxClients; i++)
@@ -147,7 +149,7 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	}
 	if(GetPlayerCount() == g_bMinimumBeacon)
 	{
-		g_beaconrepeat++;
+		CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
@@ -160,8 +162,15 @@ public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroa
 	return Plugin_Continue;
 }
 
+public Action:stop_beacons(Handle:timer)
+{
+	beaconon = false;
+	g_beaconrepeat++;
+}
+
 public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	beaconon = false;
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
@@ -184,16 +193,18 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 public Action:beacon_all_timelimit(Handle:timer, any:userid)
 {
+	CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
 	CreateTimer(1.0, beacon_all, userid, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	beaconon = false;
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
 	}
-	g_beaconrepeat++;
+	CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Continue;
 }
 
@@ -212,7 +223,7 @@ public Action:Command_StopBeacon(client, args)
 	{
 		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}OFF", client);
 	}
-	g_beaconrepeat++;
+	CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Handled;
 }
 
@@ -231,7 +242,19 @@ public Action:Command_BeaconAll(client, args)
 	{
 		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}ON", client);
 	}
-	g_beaconrepeat++;
+	if (beaconon)
+	{
+		CreateTimer(0.1, stop_beacons, _, TIMER_FLAG_NO_MAPCHANGE);
+		if (!g_bPluginColor)
+		{
+			PrintToChatAll("[SM] %N toggled beacon OFF", client);
+		}
+		else
+		{
+			CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}OFF", client);
+		}
+	}
+	
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
@@ -248,10 +271,12 @@ public Action:beacon_all(Handle:timer, any:userid)
 	new client = GetClientOfUserId(userid);
 	if(g_iClientValidation[client] != g_beaconrepeat)
 	{
+		beaconon = false;
 		return Plugin_Stop;
 	}
 	if(IsClientInGame(client) && IsPlayerAlive(client) && (0 < client <= MaxClients))
 	{
+		beaconon = true;
 		new Float:vec[3];
 		GetClientAbsOrigin(client, vec);
 		vec[2] += 10;
@@ -263,6 +288,7 @@ public Action:beacon_all(Handle:timer, any:userid)
 		EmitAmbientSound(SOUND_BLIP, vec, client, SNDLEVEL_RAIDSIREN);
 		return Plugin_Continue;
 	}
+	beaconon = false;
 	return Plugin_Stop;
 }
 
@@ -280,6 +306,8 @@ GetPlayerCount()
 }
 
 /********** CHANGELOG: ***********************
-***** 1.0 - Initial Release ******************
-***** 1.1 - Added CVAR sm_players_for_beacon *
+***** 1.0 - Initial Release
+***** 1.1 - Added CVAR sm_players_for_beacon 
+***** 1.2 - DEV Fixed issue where sm_beaconall would cause multiple beacons if used before the player count triggers the beacons
+*****       and I also fixed the issue where if you type sm_beaconall twice it will enable the beacons to also play twice at the same time.
 *********** CHANGELOG: ***********************/
