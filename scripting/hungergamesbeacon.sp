@@ -226,23 +226,32 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 	
 	for(new i = 1; i <= MaxClients; i++)
 	{
-		if(IsClientInGame(i) && (0 < i <= MaxClients))
+		if (IsValidClient(i))
 		{
-			if(IsPlayerAlive(i))
-			{
-				new Float:a_fOrigin[3];
-				GetClientAbsOrigin(i, a_fOrigin);
-				a_fOrigin[2] += 10;
-				TE_SetupBeamRingPoint(a_fOrigin, 10.0, g_fBeaconRadius, g_BeamSprite, g_HaloSprite, 0, 10, 0.6, g_fBeaconWidth, 0.5, ga_iRedColor, 5, 0);
+			new Float:a_fOrigin[3];
+			GetClientAbsOrigin(i, a_fOrigin);
+			a_fOrigin[2] += 10;
+			TE_SetupBeamRingPoint(a_fOrigin, 10.0, g_fBeaconRadius, g_BeamSprite, g_HaloSprite, 0, 10, 0.6, g_fBeaconWidth, 0.5, ga_iRedColor, 5, 0);
 
-				TE_SendToAll();
+			TE_SendToAll();
 
-				GetClientEyePosition(i, a_fOrigin);
-				EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
-			}
-		}
+			GetClientEyePosition(i, a_fOrigin);
+			EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
+		}			
 	}
 	return Plugin_Continue;
+}
+
+public bool:IsValidClient(iClient)
+{
+    if(iClient < 1 || iClient > MaxClients || !IsClientConnected(iClient) || IsClientInKickQueue(iClient) || IsClientSourceTV(iClient))
+    {
+    	return false;
+    }
+    else
+    {
+		return IsClientInGame(iClient);
+    }
 }
 
 GetPlayerCount()
