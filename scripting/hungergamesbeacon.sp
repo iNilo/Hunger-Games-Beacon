@@ -242,7 +242,7 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 	return Plugin_Continue;
 }
 
-public bool:IsValidClient(iClient)
+bool IsValidClient(iClient)
 {
     if(iClient < 1 || iClient > MaxClients || !IsClientConnected(iClient) || IsClientInKickQueue(iClient) || IsClientSourceTV(iClient))
     {
