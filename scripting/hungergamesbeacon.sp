@@ -4,20 +4,19 @@
 #include <csgocolors>
 
 #pragma semicolon 1
- 
+
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
  
 new g_BeamSprite = -1;
 new g_HaloSprite = -1;
-
-new g_beaconrepeat = 1;
+new g_iBeaconValidation = 1;
 
 new Handle:g_hPluginEnabled = INVALID_HANDLE;
 new bool:g_bPluginEnabled;
 
 new Handle:g_hMinimumBeacon = INVALID_HANDLE;
-new g_bMinimumBeacon;
+new g_iMinimumBeacon;
 
 new Handle:g_hPluginColor = INVALID_HANDLE;
 new bool:g_bPluginColor;
@@ -31,9 +30,7 @@ new Float:g_fBeaconWidth;
 new Handle:g_hBeaconTimelimit = INVALID_HANDLE;
 new Float:g_fBeaconTimelimit;
 
-new i_RedColor[4] = {255, 75, 75, 255};
-
-new g_iClientValidation[MAXPLAYERS + 1] = {1, ...};
+new ga_iRedColor[4] = {255, 75, 75, 255};
 
 public Plugin:myinfo =
 {
@@ -56,7 +53,7 @@ public OnPluginStart()
 	
 	g_hMinimumBeacon = AutoExecConfig_CreateConVar("sm_players_for_beacon", "2", "Sets the ammount of players for when the beacon should start", FCVAR_NOTIFY, true, 0.0, true, 32.0);
 	HookConVarChange(g_hMinimumBeacon, OnCVarChange);
-	g_bMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
+	g_iMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
 	
 	g_hPluginColor = AutoExecConfig_CreateConVar("sm_beacon_color", "1", "Enables and disables the beacon plugin's chat colors", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hPluginColor, OnCVarChange);
@@ -105,7 +102,7 @@ public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewVal
 	}
 	if(hCVar == g_hMinimumBeacon)
 	{
-		g_bMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
+		g_iMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
 	}
 }
 
@@ -114,96 +111,85 @@ public OnMapStart()
     PrecacheSound(SOUND_BLIP, true);
     g_BeamSprite = PrecacheModel("materials/sprites/bomb_planted_ring.vmt");
     g_HaloSprite = PrecacheModel("materials/sprites/halo.vtf");
-    g_beaconrepeat = 1;
-}
-
-public OnClientConnected(client)
-{
-	g_iClientValidation[client] = 0;
+    g_iBeaconValidation = 1;
 }
 
 public OnClientDisconnected(client)
 {
-	g_iClientValidation[client] = 0;
-	if(GetPlayerCount() == 2)
+	if (!g_bPluginEnabled)
 	{
-		g_beaconrepeat++;
-		for (new i = 1; i <= MaxClients; i++)
-		{	
-			if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
-			{
-				g_iClientValidation[i] = g_beaconrepeat;
-				CreateTimer(0.1, beacon_all, GetClientUserId(i), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-			}
-		}
+		return;
+	}
+	
+	if(GetPlayerCount() == g_iMinimumBeacon)
+	{
+		g_iBeaconValidation++;
+		CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
-public Action:Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
+public Action:Event_PlayerDeath(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
 	}
-	if(GetPlayerCount() == g_bMinimumBeacon)
+	
+	if(GetPlayerCount() == g_iMinimumBeacon)
 	{
-		g_beaconrepeat++;
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
-			{
-				g_iClientValidation[i] = g_beaconrepeat;
-				CreateTimer(1.0, beacon_all, GetClientUserId(i), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-			}
-		}
+		g_iBeaconValidation++;
+		CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
 	return Plugin_Continue;
 }
 
-public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public Action:Event_RoundStart(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
 	}
-	g_beaconrepeat++;
+
+	g_iBeaconValidation++;
 	if (!g_fBeaconTimelimit)
 	{
 		return Plugin_Continue;
 	}
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
-		{
-			g_iClientValidation[i] = g_beaconrepeat;
-			CreateTimer(g_fBeaconTimelimit, beacon_all_timelimit, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
-		}
-	}
+	CreateTimer(g_fBeaconTimelimit, beacon_all_timelimit, g_iBeaconValidation, TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Continue;
 }
 
-public Action:beacon_all_timelimit(Handle:timer, any:userid)
+public Action:beacon_all_timelimit(Handle:hTimer, any:iValidation)
 {
-	CreateTimer(1.0, beacon_all, userid, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	if(g_iBeaconValidation == iValidation)
+	{
+		g_iBeaconValidation++;
+		CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
-public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
+public Action:Event_RoundEnd(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
 	}
-	g_beaconrepeat++;
+	g_iBeaconValidation++;
 	return Plugin_Continue;
 }
 
-public Action:Command_StopBeacon(client, args)
+public Action:Command_StopBeacon(client, iArgs)
 {
+	if (iArgs != 0)
+	{
+		PrintToConsole(client, "[SM] Usage : sm_stopbeacon");
+	}
 	if (!g_bPluginEnabled)
 	{
-		ReplyToCommand(0, "Hunger Games Beacon is Disabled");
+		ReplyToCommand(client, "Hunger Games Beacon is Disabled");
 		return Plugin_Handled;
 	}
+	g_iBeaconValidation++;
 	if (!g_bPluginColor)
 	{
 		PrintToChatAll("[SM] %N toggled beacon OFF", client);
@@ -212,15 +198,18 @@ public Action:Command_StopBeacon(client, args)
 	{
 		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}OFF", client);
 	}
-	g_beaconrepeat++;
 	return Plugin_Handled;
 }
 
-public Action:Command_BeaconAll(client, args)
+public Action:Command_BeaconAll(client, iArgs)
  {
+	if (iArgs != 0)
+	{
+		PrintToConsole(client, "[SM] Usage : beaconall");
+	}
 	if (!g_bPluginEnabled)
 	{
-		ReplyToCommand(0, "Hunger Games Beacon is Disabled");
+		ReplyToCommand(client, "Hunger Games Beacon is Disabled");
 		return Plugin_Handled;
 	}
 	if (!g_bPluginColor)
@@ -231,55 +220,64 @@ public Action:Command_BeaconAll(client, args)
 	{
 		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}ON", client);
 	}
-	g_beaconrepeat++;
-	for (new i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
-		{
-			g_iClientValidation[i] = g_beaconrepeat;
-			CreateTimer(1.0, beacon_all, GetClientUserId(i), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-		}
-	}
+	g_iBeaconValidation++;
+	CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Handled;
 }
 
-public Action:beacon_all(Handle:timer, any:userid)
+public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 {
-	new client = GetClientOfUserId(userid);
-	if(g_iClientValidation[client] != g_beaconrepeat)
+	if(iValidation != g_iBeaconValidation)
 	{
 		return Plugin_Stop;
 	}
-	if(IsClientInGame(client) && IsPlayerAlive(client) && (0 < client <= MaxClients))
+	
+	for(new i = 1; i <= MaxClients; i++)
 	{
-		new Float:vec[3];
-		GetClientAbsOrigin(client, vec);
-		vec[2] += 10;
-		TE_SetupBeamRingPoint(vec, 10.0, g_fBeaconRadius, g_BeamSprite, g_HaloSprite, 0, 10, 0.6, g_fBeaconWidth, 0.5, i_RedColor, 5, 0);
+		if (IsValidClient(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
+		{
+			new Float:a_fOrigin[3];
+			GetClientAbsOrigin(i, a_fOrigin);
+			a_fOrigin[2] += 10;
+			TE_SetupBeamRingPoint(a_fOrigin, 10.0, g_fBeaconRadius, g_BeamSprite, g_HaloSprite, 0, 10, 0.6, g_fBeaconWidth, 0.5, ga_iRedColor, 5, 0);
 
-		TE_SendToAll();
+			TE_SendToAll();
 
-		GetClientEyePosition(client, vec);
-		EmitAmbientSound(SOUND_BLIP, vec, client, SNDLEVEL_RAIDSIREN);
-		return Plugin_Continue;
+			GetClientEyePosition(i, a_fOrigin);
+			EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
+		}
 	}
-	return Plugin_Stop;
+	return Plugin_Continue;
+}
+
+bool IsValidClient(iClient)
+{
+    if(iClient < 1 || iClient > MaxClients || !IsClientConnected(iClient) || IsClientInKickQueue(iClient) || IsClientSourceTV(iClient))
+    {
+    	return false;
+    }
+    else
+    {
+		return IsClientInGame(iClient);
+    }
 }
 
 GetPlayerCount()
 {
-	new players;
+	new iPlayers;
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
 		{
-			players++;
+			iPlayers++;
 		}
 	}
-	return players;
+	return iPlayers;
 }
-
-/********** CHANGELOG: ***********************
-***** 1.0 - Initial Release ******************
-***** 1.1 - Added CVAR sm_players_for_beacon *
-*********** CHANGELOG: ***********************/
+/*********************** CHANGELOG: ******************************
+***** 1.0 - Initial Release **************************************
+***** 1.1 - Added CVAR sm_players_for_beacon *********************
+***** 1.2 - ThatOneGuy helped fix the issue where sm_beaconall****
+***** would cause an issue where the beacons would happen*********
+***** twice.******************************************************
+************************ CHANGELOG: ******************************/
