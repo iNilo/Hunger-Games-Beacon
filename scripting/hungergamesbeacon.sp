@@ -234,7 +234,7 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 	
 	for(new i = 1; i <= MaxClients; i++)
 	{
-		if (IsValidClient(i))
+		if (IsValidClient(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
 		{
 			new Float:a_fOrigin[3];
 			GetClientAbsOrigin(i, a_fOrigin);
@@ -245,7 +245,7 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 
 			GetClientEyePosition(i, a_fOrigin);
 			EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
-		}			
+		}
 	}
 	return Plugin_Continue;
 }
