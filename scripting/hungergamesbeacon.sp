@@ -1,12 +1,12 @@
-#pragma semicolon 1
-
 #include <sourcemod>
 #include <sdktools>
 #include <autoexecconfig>
 #include <csgocolors>
 
+#pragma semicolon 1
+
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
  
 new g_BeamSprite = -1;
 new g_HaloSprite = -1;
@@ -180,6 +180,10 @@ public Action:Event_RoundEnd(Handle:hEvent, const String:sName[], bool:bDontBroa
 
 public Action:Command_StopBeacon(client, iArgs)
 {
+	if (iArgs != 0)
+	{
+		PrintToConsole(client, "[SM] Usage : sm_stopbeacon");
+	}
 	if (!g_bPluginEnabled)
 	{
 		ReplyToCommand(client, "Hunger Games Beacon is Disabled");
@@ -199,6 +203,10 @@ public Action:Command_StopBeacon(client, iArgs)
 
 public Action:Command_BeaconAll(client, iArgs)
  {
+	if (iArgs != 0)
+	{
+		PrintToConsole(client, "[SM] Usage : beaconall");
+	}
 	if (!g_bPluginEnabled)
 	{
 		ReplyToCommand(client, "Hunger Games Beacon is Disabled");
@@ -266,3 +274,10 @@ GetPlayerCount()
 	}
 	return iPlayers;
 }
+/*********************** CHANGELOG: ******************************
+***** 1.0 - Initial Release **************************************
+***** 1.1 - Added CVAR sm_players_for_beacon *********************
+***** 1.2 - ThatOneGuy helped fix the issue where sm_beaconall****
+***** would cause an issue where the beacons would happen*********
+***** twice.******************************************************
+************************ CHANGELOG: ******************************/
