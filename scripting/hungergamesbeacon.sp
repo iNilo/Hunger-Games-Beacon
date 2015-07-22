@@ -166,7 +166,7 @@ public Action:Event_PlayerDeath(Handle:hEvent, const String:sName[], bool:bDontB
 			}
 			else
 			{
-				CPrintToChatAll("Reminder! Teaming while the beacons are on is {PURPLE}prohibited!!!");
+				CPrintToChatAll("Reminder! Teaming while the beacons are on is {PINK}prohibited!!!");
 			}
 		}
 		g_iBeaconValidation++;
