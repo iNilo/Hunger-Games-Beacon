@@ -43,15 +43,6 @@ public Plugin:myinfo =
     version = PLUGIN_VERSION
 };
 
-public OnConfigsExecuted()
-{
-	new Handle:hTags = FindConVar("sv_tags");
-	decl String:sTags[128];
-	GetConVarString(hTags, sTags, sizeof(sTags));
-	StrCat(sTags, sizeof(sTags), ", Headline");
-	ServerCommand("sv_tags %s", sTags);
-}
-
 public OnPluginStart()
 {
 	AutoExecConfig_SetFile("sm_beacon");
@@ -288,9 +279,7 @@ GetPlayerCount()
 	return players;
 }
 
-/*	Changelog
-	1.0 - Initial Release
-	1.1 - Added CVAR sm_players_for_beacon
-	1.2 - ThatOneGuy helped fix the issue where sm_beaconall would cause the beacons to happen twice.
-	1.3 - Created a warning for when beacons come on and a CVAR to go with it. Also added a sv_tags with my name in it so I can see servers using this!
-*/
+/********** CHANGELOG: ***********************
+***** 1.0 - Initial Release ******************
+***** 1.1 - Added CVAR sm_players_for_beacon *
+*********** CHANGELOG: ***********************/
