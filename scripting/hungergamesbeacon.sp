@@ -6,11 +6,12 @@
 #pragma semicolon 1
 
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
  
 new g_BeamSprite = -1;
 new g_HaloSprite = -1;
 new g_iBeaconValidation = 1;
+new g_bBeaconOn = false;
 
 new Handle:g_hPluginEnabled = INVALID_HANDLE;
 new bool:g_bPluginEnabled;
@@ -30,6 +31,9 @@ new Float:g_fBeaconWidth;
 new Handle:g_hBeaconTimelimit = INVALID_HANDLE;
 new Float:g_fBeaconTimelimit;
 
+new Handle:g_hWarnPlayers = INVALID_HANDLE;
+new bool:g_bWarnPlayers;
+
 new ga_iRedColor[4] = {255, 75, 75, 255};
 
 public Plugin:myinfo =
@@ -40,12 +44,21 @@ public Plugin:myinfo =
     version = PLUGIN_VERSION
 };
 
+public OnConfigsExecuted()
+{
+	new Handle:hTags = FindConVar("sv_tags");
+	decl String:sTags[128];
+	GetConVarString(hTags, sTags, sizeof(sTags));
+	StrCat(sTags, sizeof(sTags), ", Headline");
+	ServerCommand("sv_tags %s", sTags);
+}
+
 public OnPluginStart()
 {
 	AutoExecConfig_SetFile("sm_beacon");
 	AutoExecConfig_SetCreateFile(true);
 
-	AutoExecConfig_CreateConVar("beacon_version", PLUGIN_VERSION, "Headline's Beacon Plugin: Version", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	AutoExecConfig_CreateConVar("beacon_version", "1.3", "Headline's Beacon Plugin: Version", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
 	g_hPluginEnabled = AutoExecConfig_CreateConVar("sm_beacon_enabled", "1", "Enables and disables the beacon plugin", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hPluginEnabled, OnCVarChange);
@@ -70,6 +83,10 @@ public OnPluginStart()
 	g_hBeaconTimelimit = AutoExecConfig_CreateConVar("sm_beacon_timelimit", "0", "Sets the amount of time (in seconds) until the beacon gets manually turned on (set to 0 to disable)", FCVAR_NOTIFY, true, 0.0, true, 600.0);
 	HookConVarChange(g_hBeaconTimelimit, OnCVarChange);
 	g_fBeaconTimelimit = GetConVarFloat(g_hBeaconTimelimit);
+	
+	g_hWarnPlayers = AutoExecConfig_CreateConVar("sm_warn_players", "0", "If it is = 1, players will be warned to not delay the round when beacons start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	HookConVarChange(g_hWarnPlayers, OnCVarChange);
+	g_bWarnPlayers = GetConVarBool(g_hWarnPlayers);
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
@@ -104,6 +121,10 @@ public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewVal
 	{
 		g_iMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
 	}
+	if(hCVar == g_hWarnPlayers)
+	{
+		g_bWarnPlayers = GetConVarBool(g_hWarnPlayers);
+	}
 }
 
 public OnMapStart()
@@ -137,6 +158,17 @@ public Action:Event_PlayerDeath(Handle:hEvent, const String:sName[], bool:bDontB
 	
 	if(GetPlayerCount() == g_iMinimumBeacon)
 	{
+		if (g_bWarnPlayers)
+		{
+			if (!g_bPluginColor)
+			{
+				PrintToChatAll("Reminder! Teaming while the beacons are on is prohibited!!!");
+			}
+			else
+			{
+				CPrintToChatAll("Reminder! Teaming while the beacons are on is {PURPLE}prohibited!!!");
+			}
+		}
 		g_iBeaconValidation++;
 		CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
@@ -149,12 +181,12 @@ public Action:Event_RoundStart(Handle:hEvent, const String:sName[], bool:bDontBr
 	{
 		return Plugin_Continue;
 	}
-
 	g_iBeaconValidation++;
 	if (!g_fBeaconTimelimit)
 	{
 		return Plugin_Continue;
 	}
+	g_bBeaconOn = false;
 	CreateTimer(g_fBeaconTimelimit, beacon_all_timelimit, g_iBeaconValidation, TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Continue;
 }
@@ -174,6 +206,7 @@ public Action:Event_RoundEnd(Handle:hEvent, const String:sName[], bool:bDontBroa
 	{
 		return Plugin_Continue;
 	}
+	g_bBeaconOn = false;
 	g_iBeaconValidation++;
 	return Plugin_Continue;
 }
@@ -190,13 +223,14 @@ public Action:Command_StopBeacon(client, iArgs)
 		return Plugin_Handled;
 	}
 	g_iBeaconValidation++;
+	g_bBeaconOn = false;
 	if (!g_bPluginColor)
 	{
 		PrintToChatAll("[SM] %N toggled beacon OFF", client);
 	}
 	else
 	{
-		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}OFF", client);
+		CPrintToChatAll("[SM] {PINK}%N {NORMAL}toggled beacon {PINK}OFF", client);
 	}
 	return Plugin_Handled;
 }
@@ -218,8 +252,21 @@ public Action:Command_BeaconAll(client, iArgs)
 	}
 	else
 	{
-		CPrintToChatAll("[SM] {PINK}%N {GREEN}toggled beacon {PINK}ON", client);
+		CPrintToChatAll("[SM] {PINK}%N {NORMAL}toggled beacon {PINK}ON", client);
 	}
+	if (g_bBeaconOn)
+	{
+		g_iBeaconValidation++;
+		if (!g_bPluginColor)
+		{
+			PrintToChatAll("[SM] %N toggled beacon OFF", client);
+		}
+		else
+		{
+			CPrintToChatAll("[SM] {PINK}%N {NORMAL}toggled beacon {PINK}OFF", client);
+		}
+	}
+	g_bBeaconOn = true;
 	g_iBeaconValidation++;
 	CreateTimer(1.0, BeaconAll_Callback, g_iBeaconValidation, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	return Plugin_Handled;
@@ -231,7 +278,6 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 	{
 		return Plugin_Stop;
 	}
-	
 	for(new i = 1; i <= MaxClients; i++)
 	{
 		if (IsValidClient(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
