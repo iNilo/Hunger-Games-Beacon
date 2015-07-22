@@ -16,6 +16,9 @@ new g_bBeaconOn = false;
 new Handle:g_hPluginEnabled = INVALID_HANDLE;
 new bool:g_bPluginEnabled;
 
+new Handle:g_hTagEnabled = INVALID_HANDLE;
+new bool:g_bTagEnabled;
+
 new Handle:g_hMinimumBeacon = INVALID_HANDLE;
 new g_iMinimumBeacon;
 
@@ -46,11 +49,14 @@ public Plugin:myinfo =
 
 public OnConfigsExecuted()
 {
-	new Handle:hTags = FindConVar("sv_tags");
-	decl String:sTags[128];
-	GetConVarString(hTags, sTags, sizeof(sTags));
-	StrCat(sTags, sizeof(sTags), ", Headline");
-	ServerCommand("sv_tags %s", sTags);
+	if (g_bTagEnabled)
+	{
+		new Handle:hTags = FindConVar("sv_tags");
+		decl String:sTags[128];
+		GetConVarString(hTags, sTags, sizeof(sTags));
+		StrCat(sTags, sizeof(sTags), ", Headline");
+		ServerCommand("sv_tags %s", sTags);
+	}
 }
 
 public OnPluginStart()
@@ -64,26 +70,30 @@ public OnPluginStart()
 	HookConVarChange(g_hPluginEnabled, OnCVarChange);
 	g_bPluginEnabled = GetConVarBool(g_hPluginEnabled);
 	
+	g_hTagEnabled = AutoExecConfig_CreateConVar("sm_tag_enabled", "1", "Allow \"Headline\" to be added to the server tags?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	HookConVarChange(g_hTagEnabled, OnCVarChange);
+	g_bTagEnabled = GetConVarBool(g_hTagEnabled);
+
 	g_hMinimumBeacon = AutoExecConfig_CreateConVar("sm_players_for_beacon", "2", "Sets the ammount of players for when the beacon should start", FCVAR_NOTIFY, true, 0.0, true, 32.0);
 	HookConVarChange(g_hMinimumBeacon, OnCVarChange);
 	g_iMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
-	
+
 	g_hPluginColor = AutoExecConfig_CreateConVar("sm_beacon_color", "1", "Enables and disables the beacon plugin's chat colors", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hPluginColor, OnCVarChange);
 	g_bPluginColor = GetConVarBool(g_hPluginColor);
-	
+
 	g_hBeaconRadius = AutoExecConfig_CreateConVar("sm_beacon_radius", "750", "Sets the radius for the beacon's rings.", FCVAR_NOTIFY, true, 50.0, true, 1500.0);
 	HookConVarChange(g_hBeaconRadius, OnCVarChange);
 	g_fBeaconRadius = GetConVarFloat(g_hBeaconRadius);
-	
+
 	g_hBeaconWidth = AutoExecConfig_CreateConVar("sm_beacon_width", "10", "Sets the thickness for the beacon's rings.", FCVAR_NOTIFY, true, 10.0, true, 30.0);
 	HookConVarChange(g_hBeaconWidth, OnCVarChange);
 	g_fBeaconWidth = GetConVarFloat(g_hBeaconWidth);
-	
+
 	g_hBeaconTimelimit = AutoExecConfig_CreateConVar("sm_beacon_timelimit", "0", "Sets the amount of time (in seconds) until the beacon gets manually turned on (set to 0 to disable)", FCVAR_NOTIFY, true, 0.0, true, 600.0);
 	HookConVarChange(g_hBeaconTimelimit, OnCVarChange);
 	g_fBeaconTimelimit = GetConVarFloat(g_hBeaconTimelimit);
-	
+
 	g_hWarnPlayers = AutoExecConfig_CreateConVar("sm_warn_players", "0", "If it is = 1, players will be warned to not delay the round when beacons start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hWarnPlayers, OnCVarChange);
 	g_bWarnPlayers = GetConVarBool(g_hWarnPlayers);
@@ -124,6 +134,10 @@ public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewVal
 	if(hCVar == g_hWarnPlayers)
 	{
 		g_bWarnPlayers = GetConVarBool(g_hWarnPlayers);
+	}
+	if(hCVar == g_hTagEnabled)
+	{
+		g_bTagEnabled = GetConVarBool(g_hTagEnabled);
 	}
 }
 
