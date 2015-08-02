@@ -343,5 +343,5 @@ stock int GetPlayerCount()
 	1.1 - Added CVAR sm_players_for_beacon
 	1.2 - ThatOneGuy helped fix the issue where sm_beaconall would cause the beacons to happen twice.
 	1.3 - Created a warning for when beacons come on and a CVAR to go with it. Also added a sv_tags with my name in it so I can see servers using this!
-	1.4 - Updated plugin to 1.7 transitional syntax
+	1.4 - Updated plugin to 1.7 transitional syntax & Added AutoExecConfigCaching & Made my Tagging system OFF by default xD
 */
