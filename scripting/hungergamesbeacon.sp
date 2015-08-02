@@ -5,41 +5,43 @@
 
 #pragma semicolon 1
 
+#pragma newdecls required
+
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
  
-new g_BeamSprite = -1;
-new g_HaloSprite = -1;
-new g_iBeaconValidation = 1;
-new g_bBeaconOn = false;
+int g_BeamSprite = -1;
+int g_HaloSprite = -1;
+int g_iBeaconValidation = 1;
+bool g_bBeaconOn = false;
 
-new Handle:g_hPluginEnabled = INVALID_HANDLE;
-new bool:g_bPluginEnabled;
+Handle g_hPluginEnabled = INVALID_HANDLE;
+bool g_bPluginEnabled;
 
-new Handle:g_hTagEnabled = INVALID_HANDLE;
-new bool:g_bTagEnabled;
+Handle g_hTagEnabled = INVALID_HANDLE;
+bool g_bTagEnabled;
 
-new Handle:g_hMinimumBeacon = INVALID_HANDLE;
-new g_iMinimumBeacon;
+Handle g_hMinimumBeacon = INVALID_HANDLE;
+int g_iMinimumBeacon;
 
-new Handle:g_hPluginColor = INVALID_HANDLE;
-new bool:g_bPluginColor;
+Handle g_hPluginColor = INVALID_HANDLE;
+bool g_bPluginColor;
 
-new Handle:g_hBeaconRadius = INVALID_HANDLE;
-new Float:g_fBeaconRadius;
+Handle g_hBeaconRadius = INVALID_HANDLE;
+float g_fBeaconRadius;
 
-new Handle:g_hBeaconWidth = INVALID_HANDLE;
-new Float:g_fBeaconWidth;
+Handle g_hBeaconWidth = INVALID_HANDLE;
+float g_fBeaconWidth;
 
-new Handle:g_hBeaconTimelimit = INVALID_HANDLE;
-new Float:g_fBeaconTimelimit;
+Handle g_hBeaconTimelimit = INVALID_HANDLE;
+float g_fBeaconTimelimit;
 
-new Handle:g_hWarnPlayers = INVALID_HANDLE;
-new bool:g_bWarnPlayers;
+Handle g_hWarnPlayers = INVALID_HANDLE;
+bool g_bWarnPlayers;
 
-new ga_iRedColor[4] = {255, 75, 75, 255};
+int ga_iRedColor[4] = {255, 75, 75, 255};
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
     name = "Hunger Games Beacon",
     author = "Headline",
@@ -47,30 +49,32 @@ public Plugin:myinfo =
     version = PLUGIN_VERSION
 };
 
-public OnConfigsExecuted()
+public void OnConfigsExecuted()
 {
 	if (g_bTagEnabled)
 	{
-		new Handle:hTags = FindConVar("sv_tags");
-		decl String:sTags[128];
+		Handle hTags = FindConVar("sv_tags");
+		char sTags[128];
 		GetConVarString(hTags, sTags, sizeof(sTags));
 		StrCat(sTags, sizeof(sTags), ", Headline");
 		ServerCommand("sv_tags %s", sTags);
 	}
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	AutoExecConfig_SetFile("sm_beacon");
 	AutoExecConfig_SetCreateFile(true);
+	
+	AutoExecConfig_CacheConvars();  
 
-	AutoExecConfig_CreateConVar("beacon_version", "1.3", "Headline's Beacon Plugin: Version", FCVAR_PLUGIN|FCVAR_NOTIFY);
+	AutoExecConfig_CreateConVar("beacon_version", PLUGIN_VERSION, "Headline's Beacon Plugin: Version", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
-	g_hPluginEnabled = AutoExecConfig_CreateConVar("sm_beacon_enabled", "1", "Enables and disables the beacon plugin", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hPluginEnabled = AutoExecConfig_CreateConVar("sm_beacon_enabled", "1", "Enables and disables the beacon plugin \n 1 = Enabled & 0 = Disabled", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hPluginEnabled, OnCVarChange);
 	g_bPluginEnabled = GetConVarBool(g_hPluginEnabled);
 	
-	g_hTagEnabled = AutoExecConfig_CreateConVar("sm_tag_enabled", "1", "Allow \"Headline\" to be added to the server tags?", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hTagEnabled = AutoExecConfig_CreateConVar("sm_tag_enabled", "0", "Allow \"Headline\" to be added to the server tags? \n 1 = Enabled & 0 = Disabled", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hTagEnabled, OnCVarChange);
 	g_bTagEnabled = GetConVarBool(g_hTagEnabled);
 
@@ -78,7 +82,7 @@ public OnPluginStart()
 	HookConVarChange(g_hMinimumBeacon, OnCVarChange);
 	g_iMinimumBeacon = GetConVarInt(g_hMinimumBeacon);
 
-	g_hPluginColor = AutoExecConfig_CreateConVar("sm_beacon_color", "1", "Enables and disables the beacon plugin's chat colors", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hPluginColor = AutoExecConfig_CreateConVar("sm_beacon_color", "1", "Enables and disables the beacon plugin's chat colors \n 1 = Enabled & 0 = Disabled", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hPluginColor, OnCVarChange);
 	g_bPluginColor = GetConVarBool(g_hPluginColor);
 
@@ -94,7 +98,7 @@ public OnPluginStart()
 	HookConVarChange(g_hBeaconTimelimit, OnCVarChange);
 	g_fBeaconTimelimit = GetConVarFloat(g_hBeaconTimelimit);
 
-	g_hWarnPlayers = AutoExecConfig_CreateConVar("sm_warn_players", "0", "If it is = 1, players will be warned to not delay the round when beacons start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hWarnPlayers = AutoExecConfig_CreateConVar("sm_warn_players", "0", "Will players be warned about teaming during the beacons?  \n 1 = Enabled & 0 = Disabled", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	HookConVarChange(g_hWarnPlayers, OnCVarChange);
 	g_bWarnPlayers = GetConVarBool(g_hWarnPlayers);
 
@@ -109,7 +113,7 @@ public OnPluginStart()
 	RegAdminCmd("sm_stopbeacon", Command_StopBeacon, ADMFLAG_GENERIC, "Toggles beacon on all players");
 }
 
-public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewValue[])
+public void OnCVarChange(Handle hCVar, const char[] sOldValue, const char[] sNewValue)
 {
 	if(hCVar == g_hPluginEnabled)
 	{
@@ -141,7 +145,7 @@ public OnCVarChange(Handle:hCVar, const String:sOldValue[], const String:sNewVal
 	}
 }
 
-public OnMapStart()
+public void OnMapStart()
 {
     PrecacheSound(SOUND_BLIP, true);
     g_BeamSprite = PrecacheModel("materials/sprites/bomb_planted_ring.vmt");
@@ -149,7 +153,7 @@ public OnMapStart()
     g_iBeaconValidation = 1;
 }
 
-public OnClientDisconnected(client)
+public void OnClientDisconnected(int client)
 {
 	if (!g_bPluginEnabled)
 	{
@@ -163,13 +167,12 @@ public OnClientDisconnected(client)
 	}
 }
 
-public Action:Event_PlayerDeath(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
+public Action Event_PlayerDeath(Handle hEvent, const char[] sName, bool bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
 		return Plugin_Continue;
 	}
-	
 	if(GetPlayerCount() == g_iMinimumBeacon)
 	{
 		if (g_bWarnPlayers)
@@ -189,7 +192,7 @@ public Action:Event_PlayerDeath(Handle:hEvent, const String:sName[], bool:bDontB
 	return Plugin_Continue;
 }
 
-public Action:Event_RoundStart(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
+public Action Event_RoundStart(Handle hEvent, const char[] sName, bool bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
@@ -205,7 +208,7 @@ public Action:Event_RoundStart(Handle:hEvent, const String:sName[], bool:bDontBr
 	return Plugin_Continue;
 }
 
-public Action:beacon_all_timelimit(Handle:hTimer, any:iValidation)
+public Action beacon_all_timelimit(Handle hTimer, any iValidation)
 {
 	if(g_iBeaconValidation == iValidation)
 	{
@@ -214,7 +217,7 @@ public Action:beacon_all_timelimit(Handle:hTimer, any:iValidation)
 	}
 }
 
-public Action:Event_RoundEnd(Handle:hEvent, const String:sName[], bool:bDontBroadcast)
+public Action Event_RoundEnd(Handle hEvent, const char[] sName, bool bDontBroadcast)
 {
 	if (!g_bPluginEnabled)
 	{
@@ -225,7 +228,7 @@ public Action:Event_RoundEnd(Handle:hEvent, const String:sName[], bool:bDontBroa
 	return Plugin_Continue;
 }
 
-public Action:Command_StopBeacon(client, iArgs)
+public Action Command_StopBeacon(int client, int iArgs)
 {
 	if (iArgs != 0)
 	{
@@ -249,7 +252,7 @@ public Action:Command_StopBeacon(client, iArgs)
 	return Plugin_Handled;
 }
 
-public Action:Command_BeaconAll(client, iArgs)
+public Action Command_BeaconAll(int client, int iArgs)
  {
 	if (iArgs != 0)
 	{
@@ -286,17 +289,17 @@ public Action:Command_BeaconAll(client, iArgs)
 	return Plugin_Handled;
 }
 
-public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
+public Action BeaconAll_Callback(Handle hTimer, any iValidation)
 {
 	if(iValidation != g_iBeaconValidation)
 	{
 		return Plugin_Stop;
 	}
-	for(new i = 1; i <= MaxClients; i++)
+	for(int i = 1; i <= MaxClients; i++)
 	{
 		if (IsValidClient(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
 		{
-			new Float:a_fOrigin[3];
+			float a_fOrigin[3];
 			GetClientAbsOrigin(i, a_fOrigin);
 			a_fOrigin[2] += 10;
 			TE_SetupBeamRingPoint(a_fOrigin, 10.0, g_fBeaconRadius, g_BeamSprite, g_HaloSprite, 0, 10, 0.6, g_fBeaconWidth, 0.5, ga_iRedColor, 5, 0);
@@ -310,7 +313,7 @@ public Action:BeaconAll_Callback(Handle:hTimer, any:iValidation)
 	return Plugin_Continue;
 }
 
-bool IsValidClient(iClient)
+bool IsValidClient(int iClient)
 {
     if(iClient < 1 || iClient > MaxClients || !IsClientConnected(iClient) || IsClientInKickQueue(iClient) || IsClientSourceTV(iClient))
     {
@@ -322,10 +325,10 @@ bool IsValidClient(iClient)
     }
 }
 
-GetPlayerCount()
+stock int GetPlayerCount()
 {
-	new iPlayers;
-	for (new i = 1; i <= MaxClients; i++)
+	int iPlayers;
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) >= 2)
 		{
@@ -334,9 +337,11 @@ GetPlayerCount()
 	}
 	return iPlayers;
 }
+
 /*	Changelog
 	1.0 - Initial Release
 	1.1 - Added CVAR sm_players_for_beacon
 	1.2 - ThatOneGuy helped fix the issue where sm_beaconall would cause the beacons to happen twice.
 	1.3 - Created a warning for when beacons come on and a CVAR to go with it. Also added a sv_tags with my name in it so I can see servers using this!
+	1.4 - Updated plugin to 1.7 transitional syntax
 */
