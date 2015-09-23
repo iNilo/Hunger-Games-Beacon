@@ -116,7 +116,7 @@ public Action Event_PlayerDeath(Handle hEvent, const char[] sName, bool bDontBro
     {
         return Plugin_Continue;
     }
-    if(GetPlayerCount() == gc_iMinimumBeacon.IntValue)
+    if(GetPlayerCount() <= gc_iMinimumBeacon.IntValue)
     {
         if (gc_bWarnPlayers.BoolValue)
         {
