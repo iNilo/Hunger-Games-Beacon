@@ -8,7 +8,7 @@
 #pragma newdecls required
 
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.4.1"
+#define PLUGIN_VERSION "1.4.2"
  
 int g_BeamSprite = -1;
 int g_HaloSprite = -1;
@@ -116,7 +116,7 @@ public Action Event_PlayerDeath(Handle hEvent, const char[] sName, bool bDontBro
     {
         return Plugin_Continue;
     }
-    if(GetPlayerCount() == gc_iMinimumBeacon.IntValue)
+    if(GetPlayerCount() <= gc_iMinimumBeacon.IntValue)
     {
         if (gc_bWarnPlayers.BoolValue)
         {
@@ -288,4 +288,5 @@ stock int GetPlayerCount()
 	1.3 - Created a warning for when beacons come on and a CVAR to go with it. Also added a sv_tags with my name in it so I can see servers using this!
 	1.4 - Updated plugin to 1.7 transitional syntax & Added AutoExecConfigCaching & Made my Tagging system OFF by default xD
 	1.4.1 - Removed Caching because it is not necessary, added my URL, and then applied ddhoward's suggestions
+	1.4.2 - Fixed an issue where beacons wouldnt turn on unless the threshold was met exactly. (Changed == to <=)
 */
