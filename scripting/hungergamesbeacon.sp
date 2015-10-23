@@ -2,18 +2,20 @@
 #include <sdktools>
 #include <autoexecconfig>
 #include <csgocolors>
+#include <emitsoundany>
 
 #pragma semicolon 1
 
 #pragma newdecls required
 
 #define SOUND_BLIP "buttons/blip1.wav"
-#define PLUGIN_VERSION "1.4.3"
+#define PLUGIN_VERSION "1.5"
  
 int g_BeamSprite = -1;
 int g_HaloSprite = -1;
 int g_iBeaconValidation = 1;
 bool g_bBeaconOn = false;
+char sFilePath[255];
 
 ConVar gc_bPluginEnabled;
 
@@ -30,6 +32,8 @@ ConVar gc_fBeaconWidth;
 ConVar gc_fBeaconTimelimit;
 
 ConVar gc_bWarnPlayers;
+
+ConVar gc_sSoundPath;
 
 int ga_iRedColor[4] = {255, 75, 75, 255};
 
@@ -79,6 +83,8 @@ public void OnPluginStart()
 	gc_fBeaconTimelimit = AutoExecConfig_CreateConVar("sm_beacon_timelimit", "0", "Sets the amount of time (in seconds) until the beacon gets manually turned on (set to 0 to disable)", FCVAR_NOTIFY, true, 0.0, true, 600.0);
 
 	gc_bWarnPlayers = AutoExecConfig_CreateConVar("sm_warn_players", "1", "If it is = 1, players will be warned to not delay the round when beacons start", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	
+	gc_sSoundPath = AutoExecConfig_CreateConVar("sm_beacon_soundpath", "", "Path to use your own sound clip. RELATIVE TO THE SOUNDS FOLDER \n VALID ENTRY \"beacon.mp3\"\n INVALID ENTRY: \"sound\beacon.mp3\"", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	AutoExecConfig_ExecuteFile();
 	AutoExecConfig_CleanFile();
@@ -89,11 +95,24 @@ public void OnPluginStart()
 	
 	RegAdminCmd("sm_beaconall", Command_BeaconAll, ADMFLAG_GENERIC, "Toggles beacon on all players");
 	RegAdminCmd("sm_stopbeacon", Command_StopBeacon, ADMFLAG_GENERIC, "Toggles beacon on all players");
+	RegAdminCmd("sm_reloadsound", Command_Reload, ADMFLAG_CONFIG, "Refreshes the sounds");
+	gc_sSoundPath.GetString(sFilePath, sizeof(sFilePath));
 }
 
 public void OnMapStart()
 {
-	PrecacheSound(SOUND_BLIP, true);
+	gc_sSoundPath.GetString(sFilePath, sizeof(sFilePath));
+	if (StrEqual(sFilePath, ""))
+	{
+		PrecacheSound(SOUND_BLIP, true);
+	}
+	else
+	{
+		char sBuffer[225];
+		Format(sBuffer, sizeof(sBuffer), "sound/%s", sFilePath);
+		PrecacheSoundAny(sFilePath);
+		AddFileToDownloadsTable(sBuffer);
+	}
 	g_BeamSprite = PrecacheModel("materials/sprites/bomb_planted_ring.vmt");
 	g_HaloSprite = PrecacheModel("materials/sprites/halo.vtf");
 	g_iBeaconValidation = 1;
@@ -174,11 +193,22 @@ public Action Event_RoundEnd(Handle hEvent, const char[] sName, bool bDontBroadc
 	return Plugin_Continue;
 }
 
+public Action Command_Reload(int client, int iArgs)
+{
+	if (iArgs != 0)
+	{
+		ReplyToCommand(client, "[SM] Usage : sm_reloadsound");
+		return Plugin_Handled;
+	}
+	gc_sSoundPath.GetString(sFilePath, sizeof(sFilePath));
+	return Plugin_Handled;
+}
+
 public Action Command_StopBeacon(int client, int iArgs)
 {
 	if (iArgs != 0)
 	{
-		PrintToConsole(client, "[SM] Usage : sm_stopbeacon");
+		ReplyToCommand(client, "[SM] Usage : sm_stopbeacon");
 	}
 	if (!gc_bPluginEnabled.BoolValue)
 	{
@@ -202,7 +232,7 @@ public Action Command_BeaconAll(int client, int iArgs)
  {
 	if (iArgs != 0)
 	{
-		PrintToConsole(client, "[SM] Usage : beaconall");
+		ReplyToCommand(client, "[SM] Usage : sm_beaconall");
 	}
 	if (!gc_bPluginEnabled.BoolValue)
 	{
@@ -253,7 +283,14 @@ public Action BeaconAll_Callback(Handle hTimer, any iValidation)
 			TE_SendToAll();
 
 			GetClientEyePosition(i, a_fOrigin);
-			EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
+			if (!StrEqual(sFilePath, ""))
+			{
+				EmitAmbientSoundAny(sFilePath, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
+			}
+			else
+			{
+				EmitAmbientSound(SOUND_BLIP, a_fOrigin, i, SNDLEVEL_RAIDSIREN);
+			}
 		}
 	}
 	return Plugin_Continue;
@@ -292,4 +329,6 @@ stock int GetPlayerCount()
 	1.4 - Updated plugin to 1.7 transitional syntax & Added AutoExecConfigCaching & Made my Tagging system OFF by default xD
 	1.4.1 - Removed Caching because it is not necessary, added my URL, and then applied ddhoward's suggestions
 	1.4.2 - Fixed an issue where beacons wouldnt turn on unless the threshold was met exactly. (Changed == to <=)
+	1.4.3 - Retabbed and fixed bug with my sv_tags thing
+	1.5 - Added a system so you can use your own custom sounds
 */
